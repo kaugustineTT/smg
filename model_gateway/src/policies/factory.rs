@@ -136,6 +136,12 @@ mod tests {
 
         let policy = PolicyFactory::create_from_config(&PolicyConfig::ConsistentHashing);
         assert_eq!(policy.name(), "consistent_hashing");
+
+        let policy = PolicyFactory::create_from_config(&PolicyConfig::PrefixHash {
+            prefix_token_count: 100,
+            load_factor: 0.8,
+        });
+        assert_eq!(policy.name(), "prefix_hash");
     }
 
     #[tokio::test]
@@ -154,6 +160,8 @@ mod tests {
         assert!(PolicyFactory::create_by_name("Manual").is_some());
         assert!(PolicyFactory::create_by_name("consistent_hashing").is_some());
         assert!(PolicyFactory::create_by_name("ConsistentHashing").is_some());
+        assert!(PolicyFactory::create_by_name("prefix_hash").is_some());
+        assert!(PolicyFactory::create_by_name("PrefixHash").is_some());
         assert!(PolicyFactory::create_by_name("unknown").is_none());
     }
 }

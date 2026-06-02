@@ -10,6 +10,19 @@ from smg.smg_rs import get_available_reasoning_parsers, get_available_tool_call_
 logger = logging.getLogger(__name__)
 
 
+COMMON_POLICY_CHOICES = [
+    "random",
+    "round_robin",
+    "cache_aware",
+    "power_of_two",
+    "manual",
+    "consistent_hashing",
+    "prefix_hash",
+]
+
+PREFILL_POLICY_CHOICES = [*COMMON_POLICY_CHOICES, "bucket"]
+
+
 @dataclasses.dataclass
 class RouterArgs:
     # Worker configuration
@@ -286,7 +299,7 @@ class RouterArgs:
             f"--{prefix}policy",
             type=str,
             default=RouterArgs.policy,
-            choices=["random", "round_robin", "cache_aware", "power_of_two", "manual"],
+            choices=COMMON_POLICY_CHOICES,
             help=(
                 "Load balancing policy to use. In PD mode, this is used for both prefill and decode"
                 " unless overridden"
@@ -296,14 +309,7 @@ class RouterArgs:
             f"--{prefix}prefill-policy",
             type=str,
             default=None,
-            choices=[
-                "random",
-                "round_robin",
-                "cache_aware",
-                "power_of_two",
-                "manual",
-                "bucket",
-            ],
+            choices=PREFILL_POLICY_CHOICES,
             help=(
                 "Specific policy for prefill nodes in PD mode."
                 " If not specified, uses the main policy"
@@ -313,7 +319,7 @@ class RouterArgs:
             f"--{prefix}decode-policy",
             type=str,
             default=None,
-            choices=["random", "round_robin", "cache_aware", "power_of_two", "manual"],
+            choices=COMMON_POLICY_CHOICES,
             help=(
                 "Specific policy for decode nodes in PD mode."
                 " If not specified, uses the main policy"
