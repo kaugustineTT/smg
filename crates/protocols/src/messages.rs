@@ -565,7 +565,16 @@ pub enum WebSearchToolResultErrorCode {
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum CacheControl {
-    Ephemeral,
+    /// Ephemeral cache breakpoint.
+    ///
+    /// Anthropic accepts an optional `ttl` selecting the cache lifetime -
+    /// `"5m"` (the default when absent) or `"1h"`. Carrying it here keeps a
+    /// caller's TTL intact through the typed relay instead of silently
+    /// dropping it on reserialization.
+    Ephemeral {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        ttl: Option<String>,
+    },
 }
 
 /// Citations configuration
@@ -1961,6 +1970,29 @@ mod tests {
             first_block.get("type").and_then(|v| v.as_str()),
             Some("text"),
             "content block must retain 'type' field: got {first_block:?}",
+        );
+    }
+
+    #[test]
+    fn cache_control_ttl_survives_roundtrip() {
+        // Anthropic's cache_control breakpoint carries an optional `ttl`
+        // ("5m" default, or "1h"). It MUST survive the deserialize -> reserialize
+        // typed relay; a bare unit enum silently drops it.
+        let with_ttl = json!({"type": "ephemeral", "ttl": "1h"});
+        let cc: CacheControl = serde_json::from_value(with_ttl.clone()).expect("deserialize ttl");
+        assert_eq!(
+            serde_json::to_value(&cc).expect("serialize"),
+            with_ttl,
+            "cache_control ttl must be preserved, not dropped",
+        );
+
+        // The default (no ttl) must still serialize compactly, with no null field.
+        let no_ttl = json!({"type": "ephemeral"});
+        let cc2: CacheControl = serde_json::from_value(no_ttl.clone()).expect("deserialize default");
+        assert_eq!(
+            serde_json::to_value(&cc2).expect("serialize"),
+            no_ttl,
+            "absent ttl must not emit a null field",
         );
     }
 
